@@ -19,6 +19,8 @@ class HybridRecommenderSystem:
     def __calculate_content_based_similarities(self,song_name, artist_name, songs_data,transformed_matrix):
         # filter out the song from data
         song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
+        if song_row.empty:
+            raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
         # get the index of song
         song_index = song_row.index[0]
         # generate the input vector
@@ -31,6 +33,8 @@ class HybridRecommenderSystem:
     def __calculate_collaborative_filtering_similarities(self, song_name, artist_name, track_ids, songs_data, interaction_matrix):
         # fetch the row from songs data
         song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
+        if song_row.empty:
+            raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
         # track_id of input song
         input_track_id = song_row['track_id'].values.item()
         # index value of track_id

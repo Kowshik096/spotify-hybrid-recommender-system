@@ -119,6 +119,8 @@ def content_recommendation(song_name,artist_name,songs_data, transformed_data, k
     artist_name = artist_name.lower()
     # filter out the song from data
     song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
+    if song_row.empty:
+        raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
     # get the index of song
     song_index = song_row.index[0]
     # generate the input vector

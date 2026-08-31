@@ -51,13 +51,14 @@ def fuzzy_song_matches(query, mapping, limit=10, cutoff=0.4):
     return {mapping[key][2]: (mapping[key][0], mapping[key][1]) for key in matches}
 
 
-songs_data, transformed_data, track_ids, filtered_data, interaction_matrix, transformed_hybrid_data = load_artifacts()
-
 # Title
 st.title('Welcome to the Spotify Song Recommender!')
 
 # Subheader
 st.write('### Enter the name of a song and the recommender will suggest similar songs 🎵🎧')
+
+# Load artifacts (cached, runs once per session)
+songs_data, transformed_data, track_ids, filtered_data, interaction_matrix, transformed_hybrid_data = load_artifacts()
 
 # Text Input with fuzzy search
 song_query = st.text_input('Enter a song name:', placeholder='e.g. crazy in love')
@@ -116,21 +117,21 @@ if filtering_type == 'Content-Based Filtering':
 
             # Display Recommendations
             for ind , recommendation in recommendations.iterrows():
-                song_name = recommendation['name'].title()
-                artist_name = recommendation['artist'].title()
+                rec_song_name = recommendation['name'].title()
+                rec_artist_name = recommendation['artist'].title()
 
                 if ind == 0:
                     st.markdown("## Currently Playing")
-                    st.markdown(f"#### **{song_name}** by **{artist_name}**")
+                    st.markdown(f"#### **{rec_song_name}** by **{rec_artist_name}**")
                     st.audio(recommendation['spotify_preview_url'])
                     st.write('---')
                 elif ind == 1:
                     st.markdown("### Next Up 🎵")
-                    st.markdown(f"#### {ind}. **{song_name}** by **{artist_name}**")
+                    st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
                     st.audio(recommendation['spotify_preview_url'])
                     st.write('---')
                 else:
-                    st.markdown(f"#### {ind}. **{song_name}** by **{artist_name}**")
+                    st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
                     st.audio(recommendation['spotify_preview_url'])
                     st.write('---')
         else:
@@ -140,9 +141,9 @@ elif filtering_type == "Hybrid Recommender System":
     if st.button('Get Recommendations'):
         st.write('Recommendations for', f"**{song_name}** by **{artist_name}**")
         recommender = HybridRecommenderSystem(
-                                                number_of_recommendations= k,
-                                                weight_content_based= content_based_weight
-                                                )
+                                            number_of_recommendations= k,
+                                            weight_content_based= content_based_weight
+                                            )
 
         # get the recommendations
         recommendations = recommender.give_recommendations(song_name= song_name,
@@ -153,20 +154,20 @@ elif filtering_type == "Hybrid Recommender System":
                                                         interaction_matrix= interaction_matrix)
         # Display Recommendations
         for ind , recommendation in recommendations.iterrows():
-            song_name = recommendation['name'].title()
-            artist_name = recommendation['artist'].title()
+            rec_song_name = recommendation['name'].title()
+            rec_artist_name = recommendation['artist'].title()
 
             if ind == 0:
                 st.markdown("## Currently Playing")
-                st.markdown(f"#### **{song_name}** by **{artist_name}**")
+                st.markdown(f"#### **{rec_song_name}** by **{rec_artist_name}**")
                 st.audio(recommendation['spotify_preview_url'])
                 st.write('---')
             elif ind == 1:
                 st.markdown("### Next Up 🎵")
-                st.markdown(f"#### {ind}. **{song_name}** by **{artist_name}**")
+                st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
                 st.audio(recommendation['spotify_preview_url'])
                 st.write('---')
             else:
-                st.markdown(f"#### {ind}. **{song_name}** by **{artist_name}**")
+                st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
                 st.audio(recommendation['spotify_preview_url'])
                 st.write('---')

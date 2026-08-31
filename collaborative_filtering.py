@@ -101,12 +101,17 @@ def collaborative_recommendation(song_name,artist_name,track_ids,songs_data,inte
     
     # fetch the row from songs data
     song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
+    if song_row.empty:
+        raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
    
     # track_id of input song
     input_track_id = song_row['track_id'].values.item()
   
     # index value of track_id
-    ind = np.where(track_ids == input_track_id)[0].item()
+    track_indices = np.where(track_ids == input_track_id)[0]
+    if track_indices.size == 0:
+        raise ValueError(f"Track ID '{input_track_id}' not found in collaborative filtering data")
+    ind = track_indices.item()
     
     # fetch the input vector
     input_array = interaction_matrix[ind]

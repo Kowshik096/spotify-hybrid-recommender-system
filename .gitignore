@@ -179,3 +179,6 @@ cython_debug/
 /spotify_dataset.zip
 /colab_odl_hybrid_benchmark.ipynb
 desktop.ini
+
+# Windows thumbnail cache
+desktop.ini

@@ -1,7 +1,7 @@
 import requests
 import time
 
-app_url = "http://localhost:8000"
+app_url = "http://localhost:8501"
 timeout_seconds = 120
 poll_interval_seconds = 2
 
