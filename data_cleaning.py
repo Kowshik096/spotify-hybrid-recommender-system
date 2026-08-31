@@ -3,7 +3,7 @@ import pandas as pd
 
 DATA_PATH = "data/Music Info.csv"
 
-def clean_data(data):
+def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans the input DataFrame by performing the following operations:
     1. Removes duplicate rows based on the 'spotify_id' column.
@@ -31,7 +31,7 @@ def clean_data(data):
     )
     
     
-def data_for_content_filtering(data):
+def data_for_content_filtering(data: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans the input DataFrame by dropping specific columns.
 
@@ -51,7 +51,7 @@ def data_for_content_filtering(data):
     )
     
     
-def main(data_path):
+def main(data_path: str) -> None:
     """
     Main function to load, clean, and save data.
     Parameters:

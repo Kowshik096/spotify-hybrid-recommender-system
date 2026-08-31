@@ -1,14 +1,15 @@
 import streamlit as st
 from difflib import get_close_matches
 from content_based_filtering import content_recommendation
-from scipy.sparse import load_npz
+from scipy.sparse import load_npz, csr_matrix
 import pandas as pd
-from numpy import load
+from numpy import load, ndarray
 from hybrid_recommendations import HybridRecommenderSystem
+from typing import Dict, Tuple, Any
 
 
 @st.cache_resource
-def load_artifacts():
+def load_artifacts() -> Tuple[pd.DataFrame, csr_matrix, ndarray, pd.DataFrame, csr_matrix, csr_matrix]:
     # load the data
     songs_data = pd.read_csv("data/cleaned_data.csv")
 
@@ -31,7 +32,7 @@ def load_artifacts():
 
 
 @st.cache_resource
-def build_song_index(songs_data):
+def build_song_index(songs_data: pd.DataFrame) -> Dict[str, Tuple[str, str, str]]:
     # map lowercase "name — artist" display strings to (name, artist) pairs
     mapping = {}
     for song_name, artist_name in zip(songs_data["name"], songs_data["artist"]):
@@ -42,7 +43,7 @@ def build_song_index(songs_data):
     return mapping
 
 
-def fuzzy_song_matches(query, mapping, limit=10, cutoff=0.4):
+def fuzzy_song_matches(query: str, mapping: Dict[str, Tuple[str, str, str]], limit: int = 10, cutoff: float = 0.4) -> Dict[str, Tuple[str, str]]:
     # return {display_string: (song_name, artist_name)} for the closest matches
     query = query.strip().lower()
     if not query:
@@ -109,12 +110,55 @@ if filtering_type == 'Content-Based Filtering':
     if st.button('Get Recommendations'):
         if ((songs_data["name"] == song_name) & (songs_data['artist'] == artist_name)).any():
             st.write('Recommendations for', f"**{song_name}** by **{artist_name}**")
-            recommendations = content_recommendation(song_name=song_name,
-                                                     artist_name=artist_name,
-                                                     songs_data=songs_data,
-                                                     transformed_data=transformed_data,
-                                                     k=k)
+            try:
+                recommendations = content_recommendation(song_name=song_name,
+                                                         artist_name=artist_name,
+                                                         songs_data=songs_data,
+                                                         transformed_data=transformed_data,
+                                                         k=k)
 
+                # Display Recommendations
+                for ind , recommendation in recommendations.iterrows():
+                    rec_song_name = recommendation['name'].title()
+                    rec_artist_name = recommendation['artist'].title()
+
+                    if ind == 0:
+                        st.markdown("## Currently Playing")
+                        st.markdown(f"#### **{rec_song_name}** by **{rec_artist_name}**")
+                        st.audio(recommendation['spotify_preview_url'])
+                        st.write('---')
+                    elif ind == 1:
+                        st.markdown("### Next Up 🎵")
+                        st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
+                        st.audio(recommendation['spotify_preview_url'])
+                        st.write('---')
+                    else:
+                        st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
+                        st.audio(recommendation['spotify_preview_url'])
+                        st.write('---')
+            except ValueError as e:
+                st.error(str(e))
+            except Exception as e:
+                st.error(f"An error occurred while generating recommendations: {str(e)}")
+        else:
+            st.write(f"Sorry, we couldn't find {song_name} in our database. Please try another song.")
+
+elif filtering_type == "Hybrid Recommender System":
+    if st.button('Get Recommendations'):
+        st.write('Recommendations for', f"**{song_name}** by **{artist_name}**")
+        recommender = HybridRecommenderSystem(
+                                            number_of_recommendations= k,
+                                            weight_content_based= content_based_weight
+                                            )
+
+        # get the recommendations
+        try:
+            recommendations = recommender.give_recommendations(song_name= song_name,
+                                                            artist_name= artist_name,
+                                                            songs_data= filtered_data,
+                                                            transformed_matrix= transformed_hybrid_data,
+                                                            track_ids= track_ids,
+                                                            interaction_matrix= interaction_matrix)
             # Display Recommendations
             for ind , recommendation in recommendations.iterrows():
                 rec_song_name = recommendation['name'].title()
@@ -134,40 +178,7 @@ if filtering_type == 'Content-Based Filtering':
                     st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
                     st.audio(recommendation['spotify_preview_url'])
                     st.write('---')
-        else:
-            st.write(f"Sorry, we couldn't find {song_name} in our database. Please try another song.")
-
-elif filtering_type == "Hybrid Recommender System":
-    if st.button('Get Recommendations'):
-        st.write('Recommendations for', f"**{song_name}** by **{artist_name}**")
-        recommender = HybridRecommenderSystem(
-                                            number_of_recommendations= k,
-                                            weight_content_based= content_based_weight
-                                            )
-
-        # get the recommendations
-        recommendations = recommender.give_recommendations(song_name= song_name,
-                                                        artist_name= artist_name,
-                                                        songs_data= filtered_data,
-                                                        transformed_matrix= transformed_hybrid_data,
-                                                        track_ids= track_ids,
-                                                        interaction_matrix= interaction_matrix)
-        # Display Recommendations
-        for ind , recommendation in recommendations.iterrows():
-            rec_song_name = recommendation['name'].title()
-            rec_artist_name = recommendation['artist'].title()
-
-            if ind == 0:
-                st.markdown("## Currently Playing")
-                st.markdown(f"#### **{rec_song_name}** by **{rec_artist_name}**")
-                st.audio(recommendation['spotify_preview_url'])
-                st.write('---')
-            elif ind == 1:
-                st.markdown("### Next Up 🎵")
-                st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
-                st.audio(recommendation['spotify_preview_url'])
-                st.write('---')
-            else:
-                st.markdown(f"#### {ind}. **{rec_song_name}** by **{rec_artist_name}**")
-                st.audio(recommendation['spotify_preview_url'])
-                st.write('---')
+        except ValueError as e:
+            st.error(str(e))
+        except Exception as e:
+            st.error(f"An error occurred while generating recommendations: {str(e)}")

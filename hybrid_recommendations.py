@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
-from scipy.sparse import load_npz
+from scipy.sparse import load_npz, csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
+from numpy.typing import NDArray
 
 
 
@@ -16,7 +17,13 @@ class HybridRecommenderSystem:
         self.weight_collaborative = 1 - weight_content_based
         
         
-    def __calculate_content_based_similarities(self,song_name, artist_name, songs_data,transformed_matrix):
+    def __calculate_content_based_similarities(
+        self,
+        song_name: str,
+        artist_name: str,
+        songs_data: pd.DataFrame,
+        transformed_matrix: csr_matrix
+    ) -> NDArray:
         # filter out the song from data
         song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
         if song_row.empty:
@@ -30,7 +37,14 @@ class HybridRecommenderSystem:
         return content_similarity_scores
         
     
-    def __calculate_collaborative_filtering_similarities(self, song_name, artist_name, track_ids, songs_data, interaction_matrix):
+    def __calculate_collaborative_filtering_similarities(
+        self,
+        song_name: str,
+        artist_name: str,
+        track_ids: NDArray,
+        songs_data: pd.DataFrame,
+        interaction_matrix: csr_matrix
+    ) -> NDArray:
         # fetch the row from songs data
         song_row = songs_data.loc[(songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)]
         if song_row.empty:
@@ -46,19 +60,27 @@ class HybridRecommenderSystem:
         return collaborative_similarity_scores
     
     
-    def __normalize_similarities(self, similarity_scores):
+    def __normalize_similarities(self, similarity_scores: NDArray) -> NDArray:
         minimum = np.min(similarity_scores)
         maximum = np.max(similarity_scores)
         normalized_scores = (similarity_scores - minimum) / (maximum - minimum)
         return normalized_scores
     
     
-    def __weighted_combination(self, content_based_scores, collaborative_filtering_scores):
+    def __weighted_combination(self, content_based_scores: NDArray, collaborative_filtering_scores: NDArray) -> NDArray:
         weighted_scores = (self.weight_content_based * content_based_scores) + (self.weight_collaborative * collaborative_filtering_scores)
         return weighted_scores
     
     
-    def give_recommendations(self, song_name, artist_name, songs_data, track_ids, transformed_matrix, interaction_matrix):
+    def give_recommendations(
+        self,
+        song_name: str,
+        artist_name: str,
+        songs_data: pd.DataFrame,
+        track_ids: NDArray,
+        transformed_matrix: csr_matrix,
+        interaction_matrix: csr_matrix
+    ) -> pd.DataFrame:
         # calculate content based similarities
         content_based_similarities = self.__calculate_content_based_similarities(song_name= song_name, 
                                                                                artist_name= artist_name, 

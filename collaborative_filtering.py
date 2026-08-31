@@ -44,7 +44,11 @@ def save_sparse_matrix(matrix: csr_matrix, file_path: str) -> None:
     save_npz(file_path, matrix)
 
 
-def create_interaction_matrix(history_data:dd.DataFrame, track_ids_save_path, save_matrix_path) -> csr_matrix:
+def create_interaction_matrix(
+    history_data: dd.DataFrame,
+    track_ids_save_path: str,
+    save_matrix_path: str
+) -> csr_matrix:
     # make a copy of data
     df = history_data.copy()
     
@@ -92,7 +96,14 @@ def create_interaction_matrix(history_data:dd.DataFrame, track_ids_save_path, sa
     save_sparse_matrix(interaction_matrix, save_matrix_path)
     
     
-def collaborative_recommendation(song_name,artist_name,track_ids,songs_data,interaction_matrix,k=5):
+def collaborative_recommendation(
+    song_name: str,
+    artist_name: str,
+    track_ids: np.ndarray,
+    songs_data: pd.DataFrame,
+    interaction_matrix: csr_matrix,
+    k: int = 5
+) -> pd.DataFrame:
     # lowercase the song name
     song_name = song_name.lower()
     
@@ -144,7 +155,7 @@ def collaborative_recommendation(song_name,artist_name,track_ids,songs_data,inte
     return top_k_songs
 
 
-def main():
+def main() -> None:
     # load the history data
     user_data = dd.read_csv(user_listening_history_data_path)
     
