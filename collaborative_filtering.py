@@ -3,6 +3,7 @@ import dask.dataframe as dd
 from scipy.sparse import csr_matrix, save_npz
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from mlflow_tracking import MLflowTracker, MlflowRun, log_collaborative_stage, NullContext
 
 # set paths
 # output paths
@@ -155,20 +156,38 @@ def collaborative_recommendation(
     return top_k_songs
 
 
-def main() -> None:
-    # load the history data
-    user_data = dd.read_csv(user_listening_history_data_path)
-    
-    # get the unique track ids
-    unique_track_ids = user_data.loc[:,"track_id"].unique().compute()
-    unique_track_ids = unique_track_ids.tolist()
-    
-    # filter the songs data
-    songs_data = pd.read_csv(songs_data_path)
-    filter_songs_data(songs_data, unique_track_ids, filtered_data_save_path)
-    
-    # create the interaction matrix
-    create_interaction_matrix(user_data, track_ids_save_path, interaction_matrix_save_path)
+def main(use_mlflow: bool = False, tracking_uri: str = None) -> None:
+    tracker = None
+    if use_mlflow:
+        tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
+
+    with MlflowRun(tracker, "collaborative_filtering", {"stage": "collaborative_filtering"}) if tracker else NullContext() as t:
+        # load the history data
+        user_data = dd.read_csv(user_listening_history_data_path)
+
+        # get the unique track ids
+        unique_track_ids = user_data.loc[:, "track_id"].unique().compute()
+        unique_track_ids = unique_track_ids.tolist()
+
+        # filter the songs data
+        songs_data = pd.read_csv(songs_data_path)
+        filter_songs_data(songs_data, unique_track_ids, filtered_data_save_path)
+
+        # create the interaction matrix
+        interaction_matrix = create_interaction_matrix(user_data, track_ids_save_path, interaction_matrix_save_path)
+
+        if tracker:
+            log_collaborative_stage(
+                tracker=tracker,
+                interaction_matrix=interaction_matrix,
+                n_tracks=interaction_matrix.shape[0],
+                n_users=interaction_matrix.shape[1],
+                params={
+                    "playcount_dtype": "float64",
+                    "aggregation": "sum",
+                    "categorize_columns": ["user_id", "track_id"]
+                }
+            )
 
 
 if __name__ == "__main__":

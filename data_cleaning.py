@@ -1,4 +1,5 @@
 import pandas as pd
+from mlflow_tracking import MLflowTracker, MlflowRun, log_data_cleaning_stage
 
 
 DATA_PATH = "data/Music Info.csv"
@@ -51,23 +52,50 @@ def data_for_content_filtering(data: pd.DataFrame) -> pd.DataFrame:
     )
     
     
-def main(data_path: str) -> None:
+def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
     """
     Main function to load, clean, and save data.
     Parameters:
     data_path (str): The file path to the raw data CSV file.
+    use_mlflow (bool): Whether to enable MLflow tracking.
+    tracking_uri (str): MLflow tracking server URI.
     Returns:
     None
     """
-    # load the data
-    data = pd.read_csv(data_path)
-    
-    # perform data cleaning
-    cleaned_data = clean_data(data)
-    
-    # saved cleaned data
-    cleaned_data.to_csv("data/cleaned_data.csv",index=False)
-    
+    tracker = None
+    if use_mlflow:
+        tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
+
+    with MlflowRun(tracker, "data_cleaning", {"stage": "data_cleaning"}) if tracker else NullContext() as t:
+        # load the data
+        data = pd.read_csv(data_path)
+        raw_rows = len(data)
+
+        # perform data cleaning
+        cleaned_data = clean_data(data)
+        cleaned_rows = len(cleaned_data)
+
+        # saved cleaned data
+        cleaned_data.to_csv("data/cleaned_data.csv", index=False)
+
+        if tracker:
+            log_data_cleaning_stage(
+                tracker=tracker,
+                raw_path=data_path,
+                cleaned_path="data/cleaned_data.csv",
+                raw_rows=raw_rows,
+                cleaned_rows=cleaned_rows,
+                dropped_columns=["genre", "spotify_id"]
+            )
+
+
+class NullContext:
+    """No-op context manager for when MLflow is disabled."""
+    def __enter__(self):
+        return None
+    def __exit__(self, *args):
+        return False
+
 
 if __name__ == "__main__":
     main(DATA_PATH)

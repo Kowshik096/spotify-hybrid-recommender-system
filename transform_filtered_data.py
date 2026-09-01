@@ -1,6 +1,7 @@
 import pandas as pd
 from data_cleaning import data_for_content_filtering
 from content_based_filtering import transform_data, save_transformed_data
+from mlflow_tracking import MLflowTracker, MlflowRun, log_hybrid_stage, NullContext
 
 
 # path of filtered data
@@ -10,19 +11,34 @@ filtered_data_path = "data/collab_filtered_data.csv"
 save_path = "data/transformed_hybrid_data.npz"
 
 
-def main(data_path: str, save_path: str) -> None:
-    # load the filtered data
-    filtered_data = pd.read_csv(data_path)
+def main(data_path: str, save_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
+    tracker = None
+    if use_mlflow:
+        tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    # clean the data
-    filtered_data_cleaned = data_for_content_filtering(filtered_data)
+    with MlflowRun(tracker, "hybrid_features", {"stage": "hybrid_features"}) if tracker else NullContext() as t:
+        # load the filtered data
+        filtered_data = pd.read_csv(data_path)
 
-    # transform the data into matrix
-    transformed_data = transform_data(filtered_data_cleaned)
+        # clean the data
+        filtered_data_cleaned = data_for_content_filtering(filtered_data)
 
-    # save the transformed data
-    save_transformed_data(transformed_data, save_path)
-    
+        # transform the data into matrix
+        transformed_data = transform_data(filtered_data_cleaned)
+
+        # save the transformed data
+        save_transformed_data(transformed_data, save_path)
+
+        if tracker:
+            log_hybrid_stage(
+                tracker=tracker,
+                weight_content=0.5,  # default, actual weight set at inference
+                params={
+                    "source": "collab_filtered_data",
+                    "transformer": "content_transformer (shared)"
+                }
+            )
+
 
 if __name__ == "__main__":
     main(filtered_data_path, save_path)

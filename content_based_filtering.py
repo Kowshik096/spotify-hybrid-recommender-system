@@ -8,6 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from data_cleaning import data_for_content_filtering
 from scipy.sparse import save_npz, csr_matrix
+from mlflow_tracking import MLflowTracker, MlflowRun, log_content_features_stage, NullContext
 
 # Cleaned Data Path
 CLEANED_DATA_PATH = "data/cleaned_data.csv"
@@ -142,26 +143,53 @@ def content_recommendation(
     return top_k_list
 
 
-def main(data_path: str) -> None:
+def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
     """
     Test the recommendations for a given song using content-based filtering.
 
     Parameters:
     data_path (str): The path to the CSV file containing the song data.
+    use_mlflow (bool): Whether to enable MLflow tracking.
+    tracking_uri (str): MLflow tracking server URI.
 
     Returns:
     None: Prints the top k recommended songs based on content similarity.
     """
-    # load the data
-    data = pd.read_csv(data_path)
-    # clean the data
-    data_content_filtering = data_for_content_filtering(data)
-    # train the transformer
-    train_transformer(data_content_filtering)
-    # transform the data
-    transformed_data = transform_data(data_content_filtering)
-    #save transformed data
-    save_transformed_data(transformed_data,"data/transformed_data.npz")
-    
+    tracker = None
+    if use_mlflow:
+        tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
+
+    with MlflowRun(tracker, "content_features", {"stage": "content_features"}) if tracker else NullContext() as t:
+        # load the data
+        data = pd.read_csv(data_path)
+        # clean the data
+        data_content_filtering = data_for_content_filtering(data)
+        # train the transformer
+        train_transformer(data_content_filtering)
+        # transform the data
+        transformed_data = transform_data(data_content_filtering)
+        # save transformed data
+        save_transformed_data(transformed_data, "data/transformed_data.npz")
+
+        if tracker:
+            # Log transformer params
+            transformer = joblib.load("transformer.joblib")
+            log_content_features_stage(
+                tracker=tracker,
+                transformer=transformer,
+                transformed_data=transformed_data,
+                feature_names=list(transformer.get_feature_names_out()),
+                n_samples=transformed_data.shape[0],
+                n_features=transformed_data.shape[1],
+                params={
+                    "frequency_encode_cols": frequency_enode_cols,
+                    "ohe_cols": ohe_cols,
+                    "tfidf_max_features": 85,
+                    "standard_scale_cols": standard_scale_cols,
+                    "min_max_scale_cols": min_max_scale_cols
+                }
+            )
+
+
 if __name__ == "__main__":
     main(CLEANED_DATA_PATH)
