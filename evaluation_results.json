@@ -70,6 +70,7 @@
       20
     ],
     "sampled_users": 50,
-    "note": "Sampled evaluation for demo. Full eval requires distributed compute (Spark/Dask/GPU). Framework demonstrates Precision@K, Recall@K, NDCG@K, MAP@K methodology."
+    "is_synthetic": true,
+    "note": "SYNTHETIC VALUES — these numbers are illustrative placeholders, NOT real measurements. Run `python evaluate.py --sample 100 --mlflow` to generate actual evaluation metrics. Full evaluation on 962K users requires distributed compute (Spark/Dask/GPU). The evaluation framework (Precision@K, Recall@K, NDCG@K, MAP@K) is production-ready."
   }
 }

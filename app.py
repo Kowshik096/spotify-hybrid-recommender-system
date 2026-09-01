@@ -10,6 +10,7 @@ from numpy import load, ndarray
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from scipy.sparse import csr_matrix, load_npz
 
+from config import METRICS_PORT, artifact_path
 from content_based_filtering import content_recommendation
 from hybrid_recommendations import HybridRecommenderSystem
 
@@ -58,16 +59,17 @@ def load_artifacts() -> tuple[
     Raises FileNotFoundError with an actionable message if any artifact
     is missing, distinguishing 'not generated yet' from 'file corrupted'.
     """
-    artifacts = {
-        "data/cleaned_data.csv": "song catalog (run: dvc repro)",
-        "data/transformed_data.npz": "content-based similarity matrix (run: dvc repro)",
-        "data/track_ids.npy": "track ID mapping (run: dvc repro)",
-        "data/collab_filtered_data.csv": "filtered songs with listening history (run: dvc repro)",
-        "data/interaction_matrix.npz": "collaborative filtering matrix (run: dvc repro)",
-        "data/transformed_hybrid_data.npz": "hybrid content vectors (run: dvc repro)",
-    }
+    artifact_names = [
+        "cleaned_data",
+        "transformed_data",
+        "track_ids",
+        "collab_filtered_data",
+        "interaction_matrix",
+        "transformed_hybrid_data",
+    ]
+    paths = {name: artifact_path(name) for name in artifact_names}
 
-    missing = [path for path in artifacts if not os.path.exists(path)]
+    missing = [p for p in paths.values() if not os.path.exists(p)]
     if missing:
         raise FileNotFoundError(
             f"Missing {len(missing)} artifact(s): {', '.join(missing)}. "
@@ -76,22 +78,22 @@ def load_artifacts() -> tuple[
         )
 
     # load the data
-    songs_data = pd.read_csv("data/cleaned_data.csv")
+    songs_data = pd.read_csv(paths["cleaned_data"])
 
     # load the transformed data
-    transformed_data = load_npz("data/transformed_data.npz")
+    transformed_data = load_npz(paths["transformed_data"])
 
     # load the track ids
-    track_ids = load("data/track_ids.npy", allow_pickle=True)
+    track_ids = load(paths["track_ids"], allow_pickle=True)
 
     # load the filtered songs data
-    filtered_data = pd.read_csv("data/collab_filtered_data.csv")
+    filtered_data = pd.read_csv(paths["collab_filtered_data"])
 
     # load the interaction matrix
-    interaction_matrix = load_npz("data/interaction_matrix.npz")
+    interaction_matrix = load_npz(paths["interaction_matrix"])
 
     # load the transformed hybrid data
-    transformed_hybrid_data = load_npz("data/transformed_hybrid_data.npz")
+    transformed_hybrid_data = load_npz(paths["transformed_hybrid_data"])
 
     return (
         songs_data,
@@ -132,8 +134,7 @@ st.title("Welcome to the Spotify Song Recommender!")
 # Subheader
 st.write("### Enter the name of a song and the recommender will suggest similar songs 🎵🎧")
 
-# Start Prometheus metrics server (port from env or default)
-METRICS_PORT = int(os.environ.get("METRICS_PORT", 9090))
+# Start Prometheus metrics server (port from config, overridable via METRICS_PORT)
 if "metrics_server" not in st.session_state:
     try:
         st.session_state.metrics_server = start_metrics_server(METRICS_PORT)

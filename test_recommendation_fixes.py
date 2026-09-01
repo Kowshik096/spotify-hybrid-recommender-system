@@ -224,9 +224,10 @@ class TestArtifactLoading:
     def test_missing_artifact_raises_filenotfound(self, monkeypatch, tmp_path):
         """Missing artifacts should raise FileNotFoundError with actionable message."""
         import app
+        import config
 
-        # Point to non-existent data directory
-        monkeypatch.chdir(tmp_path)
+        # Redirect DATA_DIR to a non-existent directory
+        monkeypatch.setattr(config, "DATA_DIR", tmp_path / "nonexistent")
         # Reset the cached resource
         app.load_artifacts.clear()
 
