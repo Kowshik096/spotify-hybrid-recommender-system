@@ -1,6 +1,6 @@
 import pandas as pd
 
-from mlflow_tracking import MlflowRun, MLflowTracker, log_data_cleaning_stage
+from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_data_cleaning_stage
 
 DATA_PATH = "data/Music Info.csv"
 
@@ -88,16 +88,6 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> 
                 cleaned_rows=cleaned_rows,
                 dropped_columns=["genre", "spotify_id"],
             )
-
-
-class NullContext:
-    """No-op context manager for when MLflow is disabled."""
-
-    def __enter__(self):
-        return None
-
-    def __exit__(self, *args):
-        return False
 
 
 if __name__ == "__main__":
