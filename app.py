@@ -6,6 +6,36 @@ import pandas as pd
 from numpy import load, ndarray
 from hybrid_recommendations import HybridRecommenderSystem
 from typing import Dict, Tuple, Any
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+import time
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('recsys_requests_total', 'Total recommendation requests', ['model_type', 'status'])
+REQUEST_LATENCY = Histogram('recsys_request_latency_seconds', 'Request latency in seconds', ['model_type'])
+ACTIVE_USERS = Gauge('recsys_active_users', 'Number of active users')
+RECOMMENDATION_COUNT = Counter('recsys_recommendations_total', 'Total recommendations served', ['model_type'])
+
+class MetricsHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/metrics':
+            self.send_response(200)
+            self.send_header('Content-Type', CONTENT_TYPE_LATEST)
+            self.end_headers()
+            self.wfile.write(generate_latest())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    def log_message(self, format, *args):
+        pass
+
+def start_metrics_server(port: int = 9090):
+    """Start Prometheus metrics HTTP server in background thread."""
+    server = HTTPServer(('', port), MetricsHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server
 
 
 @st.cache_resource
@@ -57,6 +87,10 @@ st.title('Welcome to the Spotify Song Recommender!')
 
 # Subheader
 st.write('### Enter the name of a song and the recommender will suggest similar songs 🎵🎧')
+
+# Start Prometheus metrics server
+if 'metrics_server' not in st.session_state:
+    st.session_state.metrics_server = start_metrics_server(9090)
 
 # Load artifacts (cached, runs once per session)
 songs_data, transformed_data, track_ids, filtered_data, interaction_matrix, transformed_hybrid_data = load_artifacts()
@@ -110,12 +144,17 @@ if filtering_type == 'Content-Based Filtering':
     if st.button('Get Recommendations'):
         if ((songs_data["name"] == song_name) & (songs_data['artist'] == artist_name)).any():
             st.write('Recommendations for', f"**{song_name}** by **{artist_name}**")
+            ACTIVE_USERS.inc()
+            start_time = time.time()
             try:
                 recommendations = content_recommendation(song_name=song_name,
                                                          artist_name=artist_name,
                                                          songs_data=songs_data,
                                                          transformed_data=transformed_data,
                                                          k=k)
+                REQUEST_LATENCY.labels(model_type='content_based').observe(time.time() - start_time)
+                REQUEST_COUNT.labels(model_type='content_based', status='success').inc()
+                RECOMMENDATION_COUNT.labels(model_type='content_based').inc(len(recommendations))
 
                 # Display Recommendations
                 for ind , recommendation in recommendations.iterrows():
@@ -137,9 +176,13 @@ if filtering_type == 'Content-Based Filtering':
                         st.audio(recommendation['spotify_preview_url'])
                         st.write('---')
             except ValueError as e:
+                REQUEST_COUNT.labels(model_type='content_based', status='error').inc()
                 st.error(str(e))
             except Exception as e:
+                REQUEST_COUNT.labels(model_type='content_based', status='error').inc()
                 st.error(f"An error occurred while generating recommendations: {str(e)}")
+            finally:
+                ACTIVE_USERS.dec()
         else:
             st.write(f"Sorry, we couldn't find {song_name} in our database. Please try another song.")
 
@@ -152,6 +195,8 @@ elif filtering_type == "Hybrid Recommender System":
                                             )
 
         # get the recommendations
+        ACTIVE_USERS.inc()
+        start_time = time.time()
         try:
             recommendations = recommender.give_recommendations(song_name= song_name,
                                                             artist_name= artist_name,
@@ -159,6 +204,9 @@ elif filtering_type == "Hybrid Recommender System":
                                                             transformed_matrix= transformed_hybrid_data,
                                                             track_ids= track_ids,
                                                             interaction_matrix= interaction_matrix)
+            REQUEST_LATENCY.labels(model_type='hybrid').observe(time.time() - start_time)
+            REQUEST_COUNT.labels(model_type='hybrid', status='success').inc()
+            RECOMMENDATION_COUNT.labels(model_type='hybrid').inc(len(recommendations))
             # Display Recommendations
             for ind , recommendation in recommendations.iterrows():
                 rec_song_name = recommendation['name'].title()
@@ -179,6 +227,10 @@ elif filtering_type == "Hybrid Recommender System":
                     st.audio(recommendation['spotify_preview_url'])
                     st.write('---')
         except ValueError as e:
+            REQUEST_COUNT.labels(model_type='hybrid', status='error').inc()
             st.error(str(e))
         except Exception as e:
+            REQUEST_COUNT.labels(model_type='hybrid', status='error').inc()
             st.error(f"An error occurred while generating recommendations: {str(e)}")
+        finally:
+            ACTIVE_USERS.dec()
