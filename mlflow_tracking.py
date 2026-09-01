@@ -4,11 +4,11 @@ MLflow Experiment Tracking for Hybrid Recommender System.
 Provides utilities to log parameters, metrics, and artifacts during training and evaluation.
 """
 
+import json
 import os
 from typing import Any
 
 import mlflow
-import mlflow.pyfunc
 import mlflow.sklearn
 from scipy.sparse import csr_matrix
 
@@ -188,13 +188,20 @@ def log_hybrid_stage(tracker: MLflowTracker, weight_content: float, params: dict
 
 
 def log_evaluation_metrics(tracker: MLflowTracker, results: dict[str, Any], prefix: str = ""):
-    """Log evaluation metrics from evaluate.py results."""
+    """Log evaluation metrics from evaluate.py results.
+
+    Metric names are sanitized for MLflow compatibility: '@' is replaced
+    with '_at_' since MLflow metric names only allow alphanumerics,
+    underscores, dashes, periods, spaces, colons, and slashes.
+    """
     for model_name, model_metrics in results.items():
         if model_name == "metadata":
             continue
         for k, metrics in model_metrics.items():
             for metric_name, value in metrics.items():
-                tracker.log_metrics({f"{prefix}{model_name}_{metric_name}@k{k}": value})
+                # Sanitize metric name: replace @ with _at_ for MLflow compatibility
+                safe_key = f"{prefix}{model_name}_{metric_name}_at_k{k}"
+                tracker.log_metrics({safe_key: value})
 
 
 # Context manager for automatic run management
