@@ -1,9 +1,11 @@
-import requests
 import time
+
+import requests
 
 app_url = "http://localhost:8501"
 timeout_seconds = 120
 poll_interval_seconds = 2
+
 
 # get the status code
 def get_app_status(url):
@@ -13,6 +15,7 @@ def get_app_status(url):
     except requests.RequestException:
         status_code = None
     return status_code
+
 
 # test for the app home page loading
 def test_app_loading():
@@ -25,4 +28,3 @@ def test_app_loading():
             break
         time.sleep(poll_interval_seconds)
     assert status_code == 200, "Unable to load Streamlit App"
-    print("Streamlit App Loaded Successfully")

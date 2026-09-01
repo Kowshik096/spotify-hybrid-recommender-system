@@ -54,9 +54,8 @@ ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not use mutable data structures as defaults
 ]
-per-file-ignores = {
-    "notebooks/*.py": ["T201", "T203"],  # allow print in notebooks
-}
+[tool.ruff.per-file-ignores]
+"notebooks/*.py" = ["T201", "T203"]
 
 [tool.ruff.format]
 quote-style = "double"

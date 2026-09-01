@@ -1,8 +1,9 @@
 import pandas as pd
-from mlflow_tracking import MLflowTracker, MlflowRun, log_data_cleaning_stage
 
+from mlflow_tracking import MlflowRun, MLflowTracker, log_data_cleaning_stage
 
 DATA_PATH = "data/Music Info.csv"
+
 
 def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     """
@@ -19,19 +20,18 @@ def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame: The cleaned DataFrame.
     """
     return (
-        data
-        .drop_duplicates(subset="track_id")
-        .drop(columns=["genre","spotify_id"])
-        .fillna({"tags":"no_tags"})
+        data.drop_duplicates(subset="track_id")
+        .drop(columns=["genre", "spotify_id"])
+        .fillna({"tags": "no_tags"})
         .assign(
             name=lambda x: x["name"].str.lower(),
             artist=lambda x: x["artist"].str.lower(),
-            tags=lambda x: x["tags"].str.lower()
+            tags=lambda x: x["tags"].str.lower(),
         )
         .reset_index(drop=True)
     )
-    
-    
+
+
 def data_for_content_filtering(data: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans the input DataFrame by dropping specific columns.
@@ -46,12 +46,9 @@ def data_for_content_filtering(data: pd.DataFrame) -> pd.DataFrame:
     Returns:
     pandas.DataFrame: A DataFrame with the specified columns removed.
     """
-    return (
-        data
-        .drop(columns=["track_id","name","spotify_preview_url"])
-    )
-    
-    
+    return data.drop(columns=["track_id", "name", "spotify_preview_url"])
+
+
 def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
     """
     Main function to load, clean, and save data.
@@ -66,7 +63,11 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> 
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    with MlflowRun(tracker, "data_cleaning", {"stage": "data_cleaning"}) if tracker else NullContext() as t:
+    with (
+        MlflowRun(tracker, "data_cleaning", {"stage": "data_cleaning"})
+        if tracker
+        else NullContext()
+    ):
         # load the data
         data = pd.read_csv(data_path)
         raw_rows = len(data)
@@ -85,14 +86,16 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> 
                 cleaned_path="data/cleaned_data.csv",
                 raw_rows=raw_rows,
                 cleaned_rows=cleaned_rows,
-                dropped_columns=["genre", "spotify_id"]
+                dropped_columns=["genre", "spotify_id"],
             )
 
 
 class NullContext:
     """No-op context manager for when MLflow is disabled."""
+
     def __enter__(self):
         return None
+
     def __exit__(self, *args):
         return False
 
