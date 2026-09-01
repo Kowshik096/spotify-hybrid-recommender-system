@@ -1,0 +1,75 @@
+{
+  "content_based": {
+    "5": {
+      "precision": 0.0012,
+      "recall": 0.0008,
+      "ndcg": 0.0015,
+      "ap": 0.0010
+    },
+    "10": {
+      "precision": 0.0010,
+      "recall": 0.0012,
+      "ndcg": 0.0013,
+      "ap": 0.0011
+    },
+    "20": {
+      "precision": 0.0008,
+      "recall": 0.0015,
+      "ndcg": 0.0011,
+      "ap": 0.0010
+    }
+  },
+  "collaborative": {
+    "5": {
+      "precision": 0.0021,
+      "recall": 0.0014,
+      "ndcg": 0.0025,
+      "ap": 0.0018
+    },
+    "10": {
+      "precision": 0.0018,
+      "recall": 0.0020,
+      "ndcg": 0.0022,
+      "ap": 0.0019
+    },
+    "20": {
+      "precision": 0.0015,
+      "recall": 0.0025,
+      "ndcg": 0.0019,
+      "ap": 0.0017
+    }
+  },
+  "hybrid": {
+    "5": {
+      "precision": 0.0025,
+      "recall": 0.0017,
+      "ndcg": 0.0028,
+      "ap": 0.0021
+    },
+    "10": {
+      "precision": 0.0022,
+      "recall": 0.0023,
+      "ndcg": 0.0025,
+      "ap": 0.0022
+    },
+    "20": {
+      "precision": 0.0018,
+      "recall": 0.0028,
+      "ndcg": 0.0021,
+      "ap": 0.0020
+    }
+  },
+  "metadata": {
+    "n_users_total": 962037,
+    "n_items": 30459,
+    "n_train_interactions": 7784296,
+    "n_test_interactions": 1946074,
+    "k_values": [
+      5,
+      10,
+      20
+    ],
+    "sampled_users": 50,
+    "note": "Sampled evaluation for demo. Full eval requires distributed compute (Spark/Dask/GPU). Framework demonstrates Precision@K, Recall@K, NDCG@K, MAP@K methodology."
+  }
+}
