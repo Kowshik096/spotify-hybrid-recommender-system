@@ -184,3 +184,64 @@ class TestLogEvaluationMetrics:
         }
         with MlflowRun(tracker, "test-eval"):
             log_evaluation_metrics(tracker, results, prefix="eval_")
+
+
+class TestNoCircularImports:
+    """L4: mlflow_tracking must remain a leaf module.
+
+    A runtime check that verifies the import graph stays acyclic by
+    inspecting mlflow_tracking's namespace after import. If any of the
+    pipeline modules appear as attributes, the dependency direction has
+    been violated and a circular import has been introduced.
+    """
+
+    _FORBIDDEN_ATTRS = (
+        "clean_data",
+        "data_for_content_filtering",
+        "content_recommendation",
+        "train_transformer",
+        "collaborative_recommendation",
+        "create_interaction_matrix",
+        "HybridRecommenderSystem",
+        "give_recommendations",
+    )
+
+    def test_mlflow_tracking_does_not_import_pipeline_modules(self):
+        """mlflow_tracking must not import from any pipeline module."""
+        import mlflow_tracking
+
+        leaked = []
+        for attr in self._FORBIDDEN_ATTRS:
+            if hasattr(mlflow_tracking, attr):
+                leaked.append(attr)
+
+        assert not leaked, (
+            f"mlflow_tracking imports from pipeline modules: {leaked}. "
+            f"mlflow_tracking must be a leaf module — move shared helpers "
+            f"to a separate module (e.g. config.py)."
+        )
+
+    def test_import_graph_is_acyclic(self):
+        """All modules must import without circular dependency errors."""
+        import importlib
+        import sys
+
+        # Force fresh import of the full dependency chain
+        modules_to_reload = [
+            "mlflow_tracking",
+            "data_cleaning",
+            "content_based_filtering",
+            "collaborative_filtering",
+            "transform_filtered_data",
+            "evaluate",
+        ]
+        for mod_name in modules_to_reload:
+            if mod_name in sys.modules:
+                del sys.modules[mod_name]
+
+        # Importing these in order must not raise ImportError
+        for mod_name in modules_to_reload:
+            try:
+                importlib.import_module(mod_name)
+            except ImportError as e:
+                pytest.fail(f"Circular import detected importing {mod_name}: {e}")

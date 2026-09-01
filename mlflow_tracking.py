@@ -2,6 +2,15 @@
 MLflow Experiment Tracking for Hybrid Recommender System.
 
 Provides utilities to log parameters, metrics, and artifacts during training and evaluation.
+
+Dependency direction (must be respected to avoid circular imports):
+    mlflow_tracking  ←  data_cleaning, content_based_filtering,
+                       collaborative_filtering, transform_filtered_data,
+                       evaluate, app
+
+mlflow_tracking must NOT import from any of the modules listed above.
+If shared helpers are needed, put them in a leaf module (e.g. config.py)
+that both sides can import.
 """
 
 import json

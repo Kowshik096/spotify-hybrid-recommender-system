@@ -190,11 +190,15 @@ def _run_evaluation(
         transformed_hybrid_data,
     ) = load_artifacts()
 
-    # Build user-item mapping from interaction matrix
-    n_tracks, n_users = interaction_matrix.shape
+# Build user-item mapping from interaction matrix
+    # Use scipy.sparse found arrays directly — avoids constructing a dense
+    # intermediate and keeps memory footprint proportional to nnz.
+    n_tracks, total_users = interaction_matrix.shape
     rows, cols = interaction_matrix.nonzero()
     values = interaction_matrix.data
-    df = pd.DataFrame({"track_idx": rows, "user_idx": cols, "playcount": values})
+    df = pd.DataFrame(
+        {"track_idx": rows, "user_idx": cols, "playcount": values}
+    )
     df["track_id"] = df["track_idx"].map(lambda i: track_ids[i])
 
     # Leave-one-out split per user
@@ -248,8 +252,8 @@ def _run_evaluation(
         "content_based": content_metrics,
         "collaborative": collab_metrics,
         "hybrid": hybrid_metrics,
-        "metadata": {
-            "n_users_total": n_users,
+"metadata": {
+            "n_users_total": total_users,
             "n_items": len(track_ids),
             "n_train_interactions": len(train_df),
             "n_test_interactions": len(test_df),
