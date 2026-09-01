@@ -99,8 +99,11 @@ class MLflowTracker:
         """Log a dictionary as JSON artifact."""
         with open(artifact_file, "w") as f:
             json.dump(data, f, indent=2)
-        mlflow.log_artifact(artifact_file)
-        os.remove(artifact_file)
+        try:
+            mlflow.log_artifact(artifact_file)
+        finally:
+            if os.path.exists(artifact_file):
+                os.remove(artifact_file)
 
 
 # Convenience functions for pipeline stages
@@ -236,22 +239,6 @@ class NullContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         return False
-
-
-# Decorator for auto-tracking functions
-def mlflow_track(
-    tracker: MLflowTracker, run_name: str | None = None, tags: dict[str, str] | None = None
-):
-    """Decorator to automatically track a function with MLflow."""
-
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            with MlflowRun(tracker, run_name or func.__name__, tags) as t:
-                return func(*args, tracker=t, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 if __name__ == "__main__":

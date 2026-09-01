@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from difflib import get_close_matches
@@ -52,6 +53,28 @@ def start_metrics_server(port: int = 9090):
 def load_artifacts() -> tuple[
     pd.DataFrame, csr_matrix, ndarray, pd.DataFrame, csr_matrix, csr_matrix
 ]:
+    """Load all pre-computed artifacts required by the recommender.
+
+    Raises FileNotFoundError with an actionable message if any artifact
+    is missing, distinguishing 'not generated yet' from 'file corrupted'.
+    """
+    artifacts = {
+        "data/cleaned_data.csv": "song catalog (run: dvc repro)",
+        "data/transformed_data.npz": "content-based similarity matrix (run: dvc repro)",
+        "data/track_ids.npy": "track ID mapping (run: dvc repro)",
+        "data/collab_filtered_data.csv": "filtered songs with listening history (run: dvc repro)",
+        "data/interaction_matrix.npz": "collaborative filtering matrix (run: dvc repro)",
+        "data/transformed_hybrid_data.npz": "hybrid content vectors (run: dvc repro)",
+    }
+
+    missing = [path for path in artifacts if not os.path.exists(path)]
+    if missing:
+        raise FileNotFoundError(
+            f"Missing {len(missing)} artifact(s): {', '.join(missing)}. "
+            f"Run `dvc pull` (or `dvc repro` if DVC remote is not configured) "
+            f"to generate them from the raw data."
+        )
+
     # load the data
     songs_data = pd.read_csv("data/cleaned_data.csv")
 
@@ -109,9 +132,14 @@ st.title("Welcome to the Spotify Song Recommender!")
 # Subheader
 st.write("### Enter the name of a song and the recommender will suggest similar songs 🎵🎧")
 
-# Start Prometheus metrics server
+# Start Prometheus metrics server (port from env or default)
+METRICS_PORT = int(os.environ.get("METRICS_PORT", 9090))
 if "metrics_server" not in st.session_state:
-    st.session_state.metrics_server = start_metrics_server(9090)
+    try:
+        st.session_state.metrics_server = start_metrics_server(METRICS_PORT)
+    except OSError:
+        # Port already in use (e.g. multiple Streamlit workers) — skip metrics
+        st.session_state.metrics_server = None
 
 # Load artifacts (cached, runs once per session)
 (

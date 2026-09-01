@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
@@ -6,14 +8,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_collaborative_stage
 
-# set paths
-# output paths
-track_ids_save_path = "data/track_ids.npy"
-filtered_data_save_path = "data/collab_filtered_data.csv"
-interaction_matrix_save_path = "data/interaction_matrix.npz"
-# input paths
-songs_data_path = "data/cleaned_data.csv"
-user_listening_history_data_path = "data/User Listening History.csv"
+# set paths (resolved relative to project root, not CWD)
+_BASE = Path(__file__).parent
+track_ids_save_path = str(_BASE / "data" / "track_ids.npy")
+filtered_data_save_path = str(_BASE / "data" / "collab_filtered_data.csv")
+interaction_matrix_save_path = str(_BASE / "data" / "interaction_matrix.npz")
+songs_data_path = str(_BASE / "data" / "cleaned_data.csv")
+user_listening_history_data_path = str(_BASE / "data" / "User Listening History.csv")
 
 
 def filter_songs_data(songs_data: pd.DataFrame, track_ids: list, save_df_path: str) -> pd.DataFrame:
@@ -101,6 +102,8 @@ def collaborative_recommendation(
     interaction_matrix: csr_matrix,
     k: int = 5,
 ) -> pd.DataFrame:
+    if k <= 0:
+        raise ValueError(f"k must be a positive integer, got {k}")
     # lowercase the song name
     song_name = song_name.lower()
 
@@ -152,7 +155,7 @@ def collaborative_recommendation(
     return top_k_songs
 
 
-def main(use_mlflow: bool = False, tracking_uri: str = None) -> None:
+def main(use_mlflow: bool = False, tracking_uri: str | None = None) -> None:
     tracker = None
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)

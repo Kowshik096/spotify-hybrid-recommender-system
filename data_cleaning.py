@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import pandas as pd
 
 from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_data_cleaning_stage
 
-DATA_PATH = "data/Music Info.csv"
+DATA_PATH = str(Path(__file__).parent / "data" / "Music Info.csv")
+CLEANED_DATA_PATH = str(Path(__file__).parent / "data" / "cleaned_data.csv")
 
 
 def clean_data(data: pd.DataFrame) -> pd.DataFrame:
@@ -49,7 +52,7 @@ def data_for_content_filtering(data: pd.DataFrame) -> pd.DataFrame:
     return data.drop(columns=["track_id", "name", "spotify_preview_url"])
 
 
-def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
+def main(data_path: str, use_mlflow: bool = False, tracking_uri: str | None = None) -> None:
     """
     Main function to load, clean, and save data.
     Parameters:
@@ -77,13 +80,13 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> 
         cleaned_rows = len(cleaned_data)
 
         # saved cleaned data
-        cleaned_data.to_csv("data/cleaned_data.csv", index=False)
+        cleaned_data.to_csv(CLEANED_DATA_PATH, index=False)
 
         if tracker:
             log_data_cleaning_stage(
                 tracker=tracker,
                 raw_path=data_path,
-                cleaned_path="data/cleaned_data.csv",
+                cleaned_path=CLEANED_DATA_PATH,
                 raw_rows=raw_rows,
                 cleaned_rows=cleaned_rows,
                 dropped_columns=["genre", "spotify_id"],

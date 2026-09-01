@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -12,7 +14,8 @@ from data_cleaning import data_for_content_filtering
 from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_content_features_stage
 
 # Cleaned Data Path
-CLEANED_DATA_PATH = "data/cleaned_data.csv"
+CLEANED_DATA_PATH = str(Path(__file__).parent / "data" / "cleaned_data.csv")
+TRANSFORMED_DATA_PATH = str(Path(__file__).parent / "data" / "transformed_data.npz")
 
 # cols to transform
 frequency_enode_cols = ["year"]
@@ -138,6 +141,8 @@ def content_recommendation(
     Returns:
     pd.DataFrame: A DataFrame containing the top k recommended songs with their names, artists, and Spotify preview URLs.
     """
+    if k <= 0:
+        raise ValueError(f"k must be a positive integer, got {k}")
     # convert song name to lowercase
     song_name = song_name.lower()
     # convert the artist name to lowercase
@@ -163,7 +168,7 @@ def content_recommendation(
     return top_k_list
 
 
-def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> None:
+def main(data_path: str, use_mlflow: bool = False, tracking_uri: str | None = None) -> None:
     """
     Test the recommendations for a given song using content-based filtering.
 
@@ -193,7 +198,7 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str = None) -> 
         # transform the data
         transformed_data = transform_data(data_content_filtering)
         # save transformed data
-        save_transformed_data(transformed_data, "data/transformed_data.npz")
+        save_transformed_data(transformed_data, TRANSFORMED_DATA_PATH)
 
         if tracker:
             # Log transformer params

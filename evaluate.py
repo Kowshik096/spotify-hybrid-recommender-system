@@ -13,6 +13,7 @@ Run with: python evaluate.py --sample 100  (requires significant compute)
 
 import argparse
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,14 +24,16 @@ from tqdm import tqdm
 
 from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_evaluation_metrics
 
+_BASE = Path(__file__).parent
+
 
 def load_artifacts():
-    songs_data = pd.read_csv("data/cleaned_data.csv")
-    transformed_data = load_npz("data/transformed_data.npz")
-    track_ids = load("data/track_ids.npy", allow_pickle=True)
-    filtered_data = pd.read_csv("data/collab_filtered_data.csv")
-    interaction_matrix = load_npz("data/interaction_matrix.npz")
-    transformed_hybrid_data = load_npz("data/transformed_hybrid_data.npz")
+    songs_data = pd.read_csv(str(_BASE / "data" / "cleaned_data.csv"))
+    transformed_data = load_npz(str(_BASE / "data" / "transformed_data.npz"))
+    track_ids = load(str(_BASE / "data" / "track_ids.npy"), allow_pickle=True)
+    filtered_data = pd.read_csv(str(_BASE / "data" / "collab_filtered_data.csv"))
+    interaction_matrix = load_npz(str(_BASE / "data" / "interaction_matrix.npz"))
+    transformed_hybrid_data = load_npz(str(_BASE / "data" / "transformed_hybrid_data.npz"))
     return (
         songs_data,
         transformed_data,
@@ -254,9 +257,9 @@ def _run_evaluation(
             "sampled_users": len(sampled_users),
             "note": "Sampled evaluation for demo. Full eval requires distributed compute.",
         },
-    }
+}
 
-    with open("evaluation_results.json", "w") as f:
+    with open(str(_BASE / "evaluation_results.json"), "w") as f:
         json.dump(results, f, indent=2)
 
     if tracker:
@@ -269,7 +272,7 @@ def _run_evaluation(
 
 
 def main(
-    sample_users: int = 50, use_mlflow: bool = False, tracking_uri: str = None, run_name: str = None
+    sample_users: int = 50, use_mlflow: bool = False, tracking_uri: str | None = None, run_name: str | None = None
 ):
     tracker = None
     if use_mlflow:

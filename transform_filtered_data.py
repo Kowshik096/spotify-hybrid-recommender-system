@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 from content_based_filtering import save_transformed_data, transform_data
@@ -5,14 +7,15 @@ from data_cleaning import data_for_content_filtering
 from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_hybrid_stage
 
 # path of filtered data
-filtered_data_path = "data/collab_filtered_data.csv"
+_BASE = Path(__file__).parent
+filtered_data_path = str(_BASE / "data" / "collab_filtered_data.csv")
 
 # save path
-save_path = "data/transformed_hybrid_data.npz"
+save_path = str(_BASE / "data" / "transformed_hybrid_data.npz")
 
 
 def main(
-    data_path: str, save_path: str, use_mlflow: bool = False, tracking_uri: str = None
+    data_path: str, save_path: str, use_mlflow: bool = False, tracking_uri: str | None = None
 ) -> None:
     tracker = None
     if use_mlflow:
