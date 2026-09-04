@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install -e ".[dev]"
+          pip install "ruff==0.6.0" "mypy==1.11.0" "types-requests==2.31.0"
 
       - name: Run Ruff (lint)
         run: ruff check .
