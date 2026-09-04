@@ -40,7 +40,7 @@ jobs:
         run: ruff format --check .
 
       - name: Run MyPy (type check)
-        run: mypy --ignore-missing-imports --exclude ".*altair.*|.*site-packages.*" .
+        run: mypy --ignore-missing-imports --exclude ".*site-packages/altair.*" .
 
   test:
     name: Unit Tests
