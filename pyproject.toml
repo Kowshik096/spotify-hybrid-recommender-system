@@ -90,6 +90,10 @@ exclude = [
     "site-packages/",
 ]
 
+[[tool.mypy.overrides]]
+module = "altair.*"
+follow_imports = "skip"
+
 [tool.pytest.ini_options]
 testpaths = ["."]
 python_files = ["test_*.py"]
