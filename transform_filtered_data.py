@@ -4,7 +4,7 @@ import pandas as pd
 
 from content_based_filtering import save_transformed_data, transform_data
 from data_cleaning import data_for_content_filtering
-from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_hybrid_stage
+from mlflow_tracking import MLflowTracker, get_mlflow_context, log_hybrid_stage
 
 # path of filtered data
 _BASE = Path(__file__).parent
@@ -21,11 +21,7 @@ def main(
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    with (
-        MlflowRun(tracker, "hybrid_features", {"stage": "hybrid_features"})
-        if tracker
-        else NullContext()
-    ):
+    with get_mlflow_context(tracker, "hybrid_features", {"stage": "hybrid_features"}):
         # load the filtered data
         filtered_data = pd.read_csv(data_path)
 

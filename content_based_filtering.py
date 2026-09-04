@@ -11,7 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 
 from data_cleaning import data_for_content_filtering
-from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_content_features_stage
+from mlflow_tracking import MLflowTracker, get_mlflow_context, log_content_features_stage
 
 # Cleaned Data Path
 CLEANED_DATA_PATH = str(Path(__file__).parent / "data" / "cleaned_data.csv")
@@ -204,11 +204,7 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str | None = No
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    with (
-        MlflowRun(tracker, "content_features", {"stage": "content_features"})
-        if tracker
-        else NullContext()
-    ):
+    with get_mlflow_context(tracker, "content_features", {"stage": "content_features"}):
         # load the data
         data = pd.read_csv(data_path)
         # clean the data

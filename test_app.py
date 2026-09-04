@@ -1,7 +1,7 @@
 import time
 
 import pytest
-import requests
+import requests  # type: ignore[import-untyped]
 
 app_url = "http://localhost:8501"
 timeout_seconds = 120
@@ -11,9 +11,10 @@ max_backoff_seconds = 10
 
 # get the status code
 def get_app_status(url: str) -> int | None:
+    status_code: int | None = None
     try:
         response = requests.get(url, timeout=5)
-        status_code = response.status_code
+        status_code = int(response.status_code)
     except requests.RequestException:
         status_code = None
     return status_code

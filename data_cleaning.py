@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_data_cleaning_stage
+from mlflow_tracking import MLflowTracker, get_mlflow_context, log_data_cleaning_stage
 
 DATA_PATH = str(Path(__file__).parent / "data" / "Music Info.csv")
 CLEANED_DATA_PATH = str(Path(__file__).parent / "data" / "cleaned_data.csv")
@@ -66,11 +66,7 @@ def main(data_path: str, use_mlflow: bool = False, tracking_uri: str | None = No
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    with (
-        MlflowRun(tracker, "data_cleaning", {"stage": "data_cleaning"})
-        if tracker
-        else NullContext()
-    ):
+    with get_mlflow_context(tracker, "data_cleaning", {"stage": "data_cleaning"}):
         # load the data
         data = pd.read_csv(data_path)
         raw_rows = len(data)

@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.sparse import csr_matrix, save_npz
 from sklearn.metrics.pairwise import cosine_similarity
 
-from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_collaborative_stage
+from mlflow_tracking import MLflowTracker, get_mlflow_context, log_collaborative_stage
 
 # set paths (resolved relative to project root, not CWD)
 _BASE = Path(__file__).parent
@@ -175,10 +175,8 @@ def main(use_mlflow: bool = False, tracking_uri: str | None = None) -> None:
     if use_mlflow:
         tracker = MLflowTracker("spotify-hybrid-recsys", tracking_uri=tracking_uri)
 
-    with (
-        MlflowRun(tracker, "collaborative_filtering", {"stage": "collaborative_filtering"})
-        if tracker
-        else NullContext()
+    with get_mlflow_context(
+        tracker, "collaborative_filtering", {"stage": "collaborative_filtering"}
     ):
         # load the history data
         user_data = dd.read_csv(user_listening_history_data_path)

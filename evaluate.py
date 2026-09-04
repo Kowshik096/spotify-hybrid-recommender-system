@@ -15,7 +15,7 @@ import argparse
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -62,8 +62,8 @@ def ndcg_at_k(recommended: list, relevant: set, k: int) -> float:
     dcg = 0.0
     for i, item in enumerate(recommended[:k]):
         if item in relevant:
-            dcg += 1.0 / np.log2(i + 2)
-    ideal_dcg = sum(1.0 / np.log2(i + 2) for i in range(min(len(relevant), k)))
+            dcg += float(1.0 / np.log2(i + 2))
+    ideal_dcg = float(sum(float(1.0 / np.log2(i + 2)) for i in range(min(len(relevant), k))))
     return dcg / ideal_dcg if ideal_dcg > 0 else 0.0
 
 
@@ -261,8 +261,12 @@ def _run_evaluation(sample_users: int, tracker: Any, k_values: list[int] | None 
     # Sample test users for demo (full eval needs distributed compute)
     test_users = test_df["user_idx"].unique()
     np.random.seed(42)
-    sampled_users = np.random.choice(test_users, min(sample_users, len(test_users)), replace=False)
-    sampled_users_list = sampled_users.tolist()
+    sampled_users: np.ndarray = np.random.choice(
+        test_users, min(sample_users, len(test_users)), replace=False
+    )
+    # cast: numpy 2.2 stubs mis-infer ndarray.tolist() here; at runtime it
+    # returns a list of user ids. cast() is erased at runtime (no behavior change).
+    sampled_users_list: list[Any] = cast(list[Any], sampled_users.tolist())
     test_df = test_df[test_df["user_idx"].isin(sampled_users_list)]
 
     user_items = test_df.groupby("user_idx")["track_id"].apply(set).to_dict()

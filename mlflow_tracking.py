@@ -261,6 +261,16 @@ class NullContext:
         return False
 
 
+def get_mlflow_context(
+    tracker: MLflowTracker | None, run_name: str, tags: dict[str, str] | None
+) -> NullContext | MlflowRun:
+    """Return appropriate context manager for MLflow tracking."""
+    if tracker:
+        return MlflowRun(tracker, run_name=run_name, tags=tags)
+    else:
+        return NullContext()
+
+
 if __name__ == "__main__":
     # Demo usage
     tracker = MLflowTracker("demo-experiment")

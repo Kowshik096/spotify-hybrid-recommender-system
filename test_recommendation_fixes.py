@@ -500,7 +500,7 @@ class TestArtifactLoading:
             import app
             import config
 
-            app.load_artifacts.clear()
+            app.load_artifacts.clear()  # type: ignore[attr-defined]  # streamlit cache_resource adds .clear() at runtime
             # Verify the config points to the right place
             assert "nonexistent" in str(config.DATA_DIR)
             app.load_artifacts()
