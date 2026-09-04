@@ -7,6 +7,7 @@ Tests verify:
 - M4: artifact loading produces actionable error messages
 """
 
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -488,15 +489,20 @@ class TestArtifactLoading:
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         """Missing artifacts should raise FileNotFoundError with actionable message."""
-        import app
-        import config
-
-        # Redirect DATA_DIR to a non-existent directory
-        monkeypatch.setattr(config, "DATA_DIR", tmp_path / "nonexistent")
-        # Reset the cached resource
-        app.load_artifacts.clear()
+        # Set up the environment BEFORE importing app
+        monkeypatch.setenv("DATA_DIR", str(tmp_path / "nonexistent"))
+        # Clear any cached modules
+        for mod in list(sys.modules.keys()):
+            if mod.startswith("app"):
+                del sys.modules[mod]
 
         with pytest.raises(FileNotFoundError) as exc_info:
+            import app
+            import config
+
+            app.load_artifacts.clear()
+            # Verify the config points to the right place
+            assert "nonexistent" in str(config.DATA_DIR)
             app.load_artifacts()
 
         assert "dvc pull" in str(exc_info.value) or "dvc repro" in str(exc_info.value)

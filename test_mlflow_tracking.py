@@ -132,12 +132,18 @@ class TestMlflowRun:
 class TestLogDataCleaningStage:
     """Tests for log_data_cleaning_stage."""
 
-    def test_log_data_cleaning_stage_logs_metrics(self, tracker: MLflowTracker) -> None:
+    def test_log_data_cleaning_stage_logs_metrics(
+        self, tracker: MLflowTracker, tmp_path: Path
+    ) -> None:
+        # Create a dummy cleaned data file for the test
+        cleaned_path = tmp_path / "cleaned_data.csv"
+        cleaned_path.write_text("track_id,name,artist\n1,test,test\n")
+
         with MlflowRun(tracker, "test-cleaning"):
             log_data_cleaning_stage(
                 tracker=tracker,
                 raw_path="data/Music Info.csv",
-                cleaned_path="data/cleaned_data.csv",
+                cleaned_path=str(cleaned_path),
                 raw_rows=1000,
                 cleaned_rows=950,
                 dropped_columns=["genre", "spotify_id"],
