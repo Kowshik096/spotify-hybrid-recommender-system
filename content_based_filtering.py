@@ -16,6 +16,7 @@ from mlflow_tracking import MlflowRun, MLflowTracker, NullContext, log_content_f
 # Cleaned Data Path
 CLEANED_DATA_PATH = str(Path(__file__).parent / "data" / "cleaned_data.csv")
 TRANSFORMED_DATA_PATH = str(Path(__file__).parent / "data" / "transformed_data.npz")
+TRANSFORMER_PATH = str(Path(__file__).parent / "transformer.joblib")
 
 # cols to transform
 frequency_enode_cols = ["year"]
@@ -70,8 +71,11 @@ def train_transformer(data: pd.DataFrame) -> None:
     # fit the transformer
     transformer.fit(data)
 
-    # save the transformer
-    joblib.dump(transformer, "transformer.joblib")
+    # save the transformer — write to an absolute path derived from this
+    # module's location so the result is identical regardless of the process
+    # CWD (DVC runs each stage with the project root as CWD, but ad-hoc runs
+    # from a different directory previously wrote a stray copy).
+    joblib.dump(transformer, TRANSFORMER_PATH)
 
 
 def transform_data(data: pd.DataFrame) -> csr_matrix:
@@ -83,7 +87,7 @@ def transform_data(data: pd.DataFrame) -> csr_matrix:
         csr_matrix: The transformed data.
     """
     # load the transformer
-    transformer = joblib.load("transformer.joblib")
+    transformer = joblib.load(TRANSFORMER_PATH)
 
     # transform the data
     transformed_data = transformer.transform(data)
@@ -117,8 +121,7 @@ def calculate_similarity_scores(input_vector: np.ndarray, data: csr_matrix) -> n
     """
     # calculate similarity scores
     similarity_scores = cosine_similarity(input_vector, data)
-
-    return similarity_scores
+    return np.asarray(similarity_scores, dtype=np.float64)
 
 
 def content_recommendation(
@@ -153,16 +156,33 @@ def content_recommendation(
     ]
     if song_row.empty:
         raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
-    # get the index of song
-    song_index = song_row.index[0]
+    if len(song_row) > 1:
+        # Multiple rows share the same (name, artist) — a re-imported or
+        # scraped catalog can contain the same track twice. Content-based
+        # filtering does not depend on a unique track_id (it ranks by feature
+        # similarity), so we use the first match rather than aborting. Callers
+        # that need an unambiguous mapping (collaborative/hybrid) must
+        # deduplicate on track_id themselves.
+        song_row = song_row.iloc[[0]]
+    # Resolve the matched label to its POSITIONAL index. ``transformed_matrix``
+    # is indexed by row position, so using ``song_row.index[0]`` (a label)
+    # directly would read the wrong feature row on any non-RangeIndex frame
+    # (e.g. after set_index / filtering / shuffling).
+    song_index = int(songs_data.index.get_indexer([song_row.index[0]])[0])
+    if song_index < 0:
+        raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
     # generate the input vector
     input_vector = transformed_data[song_index].reshape(1, -1)
     # calculate similarity scores
     similarity_scores = calculate_similarity_scores(input_vector, transformed_data)
-    # get the top k songs
-    top_k_songs_indexes = np.argsort(similarity_scores.ravel())[-k - 1 :][::-1]
+    # Rank every song by descending similarity. The query song scores 1.0
+    # against itself, so it must be excluded and exactly k returned.
+    # (The previous ``[-k - 1:]`` slice returned k+1 entries including the
+    # seed song — an off-by-one visible as k+1 rows in the UI.)
+    ranked_indices = np.argsort(similarity_scores.ravel())[::-1]
+    ranked_indices = ranked_indices[ranked_indices != song_index][:k]
     # get the top k songs names
-    top_k_songs_names = songs_data.iloc[top_k_songs_indexes]
+    top_k_songs_names = songs_data.iloc[ranked_indices]
     # print the top k songs
     top_k_list = top_k_songs_names[["name", "artist", "spotify_preview_url"]].reset_index(drop=True)
     return top_k_list

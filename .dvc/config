@@ -2,4 +2,4 @@
     remote = local-remote
 
 ['remote "local-remote"']
-    url = P:/Resume_Projects/Hybrid_RecSys_DVC_Remote
+    url = remote

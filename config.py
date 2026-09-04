@@ -24,9 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(PROJECT_ROOT / "data")))
 METRICS_PORT = int(os.environ.get("METRICS_PORT", "9090"))
 STREAMLIT_PORT = int(os.environ.get("STREAMLIT_PORT", "8501"))
-MLFLOW_TRACKING_URI = os.environ.get(
-    "MLFLOW_TRACKING_URI", f"file://{PROJECT_ROOT / 'mlruns'}"
-)
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", f"file://{PROJECT_ROOT / 'mlruns'}")
 
 # Artifact file names (paths are resolved lazily from DATA_DIR so that
 # overriding DATA_DIR at runtime — e.g. in tests — takes effect)
@@ -48,7 +46,5 @@ def artifact_path(name: str) -> str:
     monkeypatching config.DATA_DIR in tests.
     """
     if name not in _ARTIFACT_FILES:
-        raise KeyError(
-            f"Unknown artifact '{name}'. Known: {list(_ARTIFACT_FILES)}"
-        )
+        raise KeyError(f"Unknown artifact '{name}'. Known: {list(_ARTIFACT_FILES)}")
     return str(DATA_DIR / _ARTIFACT_FILES[name])

@@ -3,6 +3,7 @@ import threading
 import time
 from difflib import get_close_matches
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -28,7 +29,7 @@ RECOMMENDATION_COUNT = Counter(
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == "/metrics":
             self.send_response(200)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
@@ -38,11 +39,11 @@ class MetricsHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         pass
 
 
-def start_metrics_server(port: int = 9090):
+def start_metrics_server(port: int = METRICS_PORT) -> HTTPServer:
     """Start Prometheus metrics HTTP server in background thread."""
     server = HTTPServer(("", port), MetricsHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -51,9 +52,9 @@ def start_metrics_server(port: int = 9090):
 
 
 @st.cache_resource
-def load_artifacts() -> tuple[
-    pd.DataFrame, csr_matrix, ndarray, pd.DataFrame, csr_matrix, csr_matrix
-]:
+def load_artifacts() -> (
+    tuple[pd.DataFrame, csr_matrix, ndarray, pd.DataFrame, csr_matrix, csr_matrix]
+):
     """Load all pre-computed artifacts required by the recommender.
 
     Raises FileNotFoundError with an actionable message if any artifact
@@ -105,7 +106,7 @@ def load_artifacts() -> tuple[
     )
 
 
-@st.cache_resource
+@st.cache_data
 def build_song_index(songs_data: pd.DataFrame) -> dict[str, tuple[str, str, str]]:
     # map lowercase "name — artist" display strings to (name, artist) pairs
     mapping = {}
@@ -117,6 +118,7 @@ def build_song_index(songs_data: pd.DataFrame) -> dict[str, tuple[str, str, str]
     return mapping
 
 
+@st.cache_data
 def fuzzy_song_matches(
     query: str, mapping: dict[str, tuple[str, str, str]], limit: int = 10, cutoff: float = 0.4
 ) -> dict[str, tuple[str, str]]:
@@ -135,12 +137,21 @@ st.title("Welcome to the Spotify Song Recommender!")
 st.write("### Enter the name of a song and the recommender will suggest similar songs 🎵🎧")
 
 # Start Prometheus metrics server (port from config, overridable via METRICS_PORT)
+# The metrics HTTP server is independent of Streamlit: it must keep serving
+# /metrics even when the Streamlit process is restarted or multiple workers
+# are spawned. A port conflict (e.g. a stale server from a previous run) is
+# therefore expected, not fatal — log it and keep going so the app remains
+# usable and the operator can see which port is actually in use.
 if "metrics_server" not in st.session_state:
     try:
         st.session_state.metrics_server = start_metrics_server(METRICS_PORT)
-    except OSError:
-        # Port already in use (e.g. multiple Streamlit workers) — skip metrics
+    except OSError as e:
         st.session_state.metrics_server = None
+        st.warning(
+            f"Prometheus metrics server could not start on port {METRICS_PORT}: {e}. "
+            f"Recommendations still work; set METRICS_PORT to a free port to restore "
+            f"metrics at http://localhost:<port>/metrics."
+        )
 
 # Load artifacts (cached, runs once per session)
 (

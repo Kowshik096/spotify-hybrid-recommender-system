@@ -6,7 +6,7 @@ category-encoders==2.6.4
 joblib==1.4.2
 dask==2024.12.1
 dask-expr==1.1.21
-pyarrow==18.1.0
+pyarrow==17.0.0
 streamlit==1.41.1
 dvc==3.58.0
 matplotlib==3.10.0

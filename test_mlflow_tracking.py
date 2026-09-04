@@ -7,6 +7,7 @@ import (the bug that was fixed).
 
 import os
 import tempfile
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -25,7 +26,7 @@ from mlflow_tracking import (
 
 
 @pytest.fixture
-def tracker(tmp_path):
+def tracker(tmp_path: Path) -> MLflowTracker:
     """Create an MLflowTracker with a temporary tracking directory."""
     tracking_uri = f"file:{tmp_path / 'mlruns'}"
     return MLflowTracker("test-experiment", tracking_uri=tracking_uri)
@@ -34,12 +35,10 @@ def tracker(tmp_path):
 class TestLogDict:
     """Tests for log_dict — the method that was broken by a missing import."""
 
-    def test_log_dict_writes_and_removes_temp_file(self, tracker):
+    def test_log_dict_writes_and_removes_temp_file(self, tracker: MLflowTracker) -> None:
         """log_dict should write JSON to a temp file, log it, then delete it."""
         with MlflowRun(tracker, "test-log-dict"):
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
                 tmp_path = f.name
 
             tracker.log_dict({"feature_names": ["year", "duration_ms"]}, tmp_path)
@@ -47,7 +46,7 @@ class TestLogDict:
             # The temp file should be removed after logging
             assert not os.path.exists(tmp_path)
 
-    def test_log_dict_does_not_raise_nameerror(self, tracker):
+    def test_log_dict_does_not_raise_nameerror(self, tracker: MLflowTracker) -> None:
         """log_dict must not raise NameError due to missing 'import json'.
 
         This is a regression test for the bug where json was not imported
@@ -67,7 +66,7 @@ class TestLogDict:
 class TestLogContentFeaturesStage:
     """Tests for log_content_features_stage — which calls log_dict internally."""
 
-    def test_log_content_features_stage_works(self, tracker):
+    def test_log_content_features_stage_works(self, tracker: MLflowTracker) -> None:
         """log_content_features_stage should not crash when log_dict is called."""
         transformed = csr_matrix(np.eye(5))
         with MlflowRun(tracker, "test-content-features"):
@@ -84,7 +83,7 @@ class TestLogContentFeaturesStage:
             except NameError as e:
                 pytest.fail(f"log_content_features_stage raised NameError: {e}")
 
-    def test_log_content_features_stage_logs_sparsity_metric(self, tracker):
+    def test_log_content_features_stage_logs_sparsity_metric(self, tracker: MLflowTracker) -> None:
         """log_content_features_stage should log sparsity as a metric."""
         transformed = csr_matrix(np.eye(5))
         with MlflowRun(tracker, "test-sparsity"):
@@ -103,11 +102,11 @@ class TestLogContentFeaturesStage:
 class TestNullContext:
     """Tests for NullContext — used when MLflow is disabled."""
 
-    def test_null_context_returns_none(self):
+    def test_null_context_returns_none(self) -> None:
         with NullContext() as ctx:
             assert ctx is None
 
-    def test_null_context_does_not_suppress_exceptions(self):
+    def test_null_context_does_not_suppress_exceptions(self) -> None:
         with pytest.raises(ValueError):
             with NullContext():
                 raise ValueError("test")
@@ -116,13 +115,13 @@ class TestNullContext:
 class TestMlflowRun:
     """Tests for MlflowRun context manager."""
 
-    def test_mlfow_run_starts_and_ends(self, tracker):
+    def test_mlfow_run_starts_and_ends(self, tracker: MLflowTracker) -> None:
         with MlflowRun(tracker, "test-run", {"type": "unit-test"}):
             assert tracker.run is not None
         # After exiting, run should be None
         assert tracker.run is None
 
-    def test_mlfow_run_marks_failed_on_exception(self, tracker):
+    def test_mlfow_run_marks_failed_on_exception(self, tracker: MLflowTracker) -> None:
         with pytest.raises(ValueError):
             with MlflowRun(tracker, "test-failed"):
                 raise ValueError("test error")
@@ -133,7 +132,7 @@ class TestMlflowRun:
 class TestLogDataCleaningStage:
     """Tests for log_data_cleaning_stage."""
 
-    def test_log_data_cleaning_stage_logs_metrics(self, tracker):
+    def test_log_data_cleaning_stage_logs_metrics(self, tracker: MLflowTracker) -> None:
         with MlflowRun(tracker, "test-cleaning"):
             log_data_cleaning_stage(
                 tracker=tracker,
@@ -148,7 +147,7 @@ class TestLogDataCleaningStage:
 class TestLogCollaborativeStage:
     """Tests for log_collaborative_stage."""
 
-    def test_log_collaborative_stage_logs_metrics(self, tracker):
+    def test_log_collaborative_stage_logs_metrics(self, tracker: MLflowTracker) -> None:
         matrix = csr_matrix(np.eye(10))
         with MlflowRun(tracker, "test-collab"):
             log_collaborative_stage(
@@ -163,23 +162,19 @@ class TestLogCollaborativeStage:
 class TestLogHybridStage:
     """Tests for log_hybrid_stage."""
 
-    def test_log_hybrid_stage_logs_weight(self, tracker):
+    def test_log_hybrid_stage_logs_weight(self, tracker: MLflowTracker) -> None:
         with MlflowRun(tracker, "test-hybrid"):
             log_hybrid_stage(
-                tracker=tracker,
-                weight_content=0.5,
-                params={"source": "collab_filtered_data"},
+                tracker=tracker, weight_content=0.5, params={"source": "collab_filtered_data"}
             )
 
 
 class TestLogEvaluationMetrics:
     """Tests for log_evaluation_metrics."""
 
-    def test_log_evaluation_metrics_skips_metadata(self, tracker):
+    def test_log_evaluation_metrics_skips_metadata(self, tracker: MLflowTracker) -> None:
         results = {
-            "content_based": {
-                "5": {"precision": 0.1, "recall": 0.2, "ndcg": 0.3, "ap": 0.4}
-            },
+            "content_based": {"5": {"precision": 0.1, "recall": 0.2, "ndcg": 0.3, "ap": 0.4}},
             "metadata": {"n_users": 100},
         }
         with MlflowRun(tracker, "test-eval"):
@@ -206,7 +201,7 @@ class TestNoCircularImports:
         "give_recommendations",
     )
 
-    def test_mlflow_tracking_does_not_import_pipeline_modules(self):
+    def test_mlflow_tracking_does_not_import_pipeline_modules(self) -> None:
         """mlflow_tracking must not import from any pipeline module."""
         import mlflow_tracking
 
@@ -221,7 +216,7 @@ class TestNoCircularImports:
             f"to a separate module (e.g. config.py)."
         )
 
-    def test_import_graph_is_acyclic(self):
+    def test_import_graph_is_acyclic(self) -> None:
         """All modules must import without circular dependency errors."""
         import importlib
         import sys

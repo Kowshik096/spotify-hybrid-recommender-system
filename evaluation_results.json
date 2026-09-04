@@ -1,76 +1,76 @@
 {
   "content_based": {
     "5": {
-      "precision": 0.0012,
-      "recall": 0.0008,
-      "ndcg": 0.0015,
-      "ap": 0.0010
+      "precision": 0.016,
+      "recall": 0.010512820512820513,
+      "ndcg": 0.02307260547086484,
+      "ap": 0.013466666666666667
     },
     "10": {
-      "precision": 0.0010,
-      "recall": 0.0012,
-      "ndcg": 0.0013,
-      "ap": 0.0011
+      "precision": 0.01,
+      "recall": 0.012051282051282053,
+      "ndcg": 0.01965614551545579,
+      "ap": 0.010566666666666667
     },
     "20": {
-      "precision": 0.0008,
-      "recall": 0.0015,
-      "ndcg": 0.0011,
-      "ap": 0.0010
+      "precision": 0.007000000000000001,
+      "recall": 0.032051282051282055,
+      "ndcg": 0.02373985464250788,
+      "ap": 0.010778388278388278
     }
   },
   "collaborative": {
     "5": {
-      "precision": 0.0021,
-      "recall": 0.0014,
-      "ndcg": 0.0025,
-      "ap": 0.0018
+      "precision": 0.10400000000000001,
+      "recall": 0.10613095238095237,
+      "ndcg": 0.14447969771361208,
+      "ap": 0.09572222222222222
     },
     "10": {
-      "precision": 0.0018,
-      "recall": 0.0020,
-      "ndcg": 0.0022,
-      "ap": 0.0019
+      "precision": 0.066,
+      "recall": 0.12578486764807517,
+      "ndcg": 0.13260408890024444,
+      "ap": 0.07687978080120937
     },
     "20": {
-      "precision": 0.0015,
-      "recall": 0.0025,
-      "ndcg": 0.0019,
-      "ap": 0.0017
+      "precision": 0.041999999999999996,
+      "recall": 0.14075739512060265,
+      "ndcg": 0.13306575322494646,
+      "ap": 0.0741299711086395
     }
   },
   "hybrid": {
     "5": {
-      "precision": 0.0025,
-      "recall": 0.0017,
-      "ndcg": 0.0028,
-      "ap": 0.0021
+      "precision": 0.10400000000000001,
+      "recall": 0.10398809523809521,
+      "ndcg": 0.14617557463082065,
+      "ap": 0.09765555555555555
     },
     "10": {
-      "precision": 0.0022,
-      "recall": 0.0023,
-      "ndcg": 0.0025,
-      "ap": 0.0022
+      "precision": 0.068,
+      "recall": 0.1266777247909323,
+      "ndcg": 0.13486821566407184,
+      "ap": 0.07810965608465609
     },
     "20": {
-      "precision": 0.0018,
-      "recall": 0.0028,
-      "ndcg": 0.0021,
-      "ap": 0.0020
+      "precision": 0.04299999999999999,
+      "recall": 0.14575739512060265,
+      "ndcg": 0.13575844783110877,
+      "ap": 0.07496941226480998
     }
   },
   "metadata": {
     "n_users_total": 962037,
     "n_items": 30459,
-    "n_train_interactions": 7784296,
-    "n_test_interactions": 1946074,
+    "n_train_interactions": 5122091,
+    "n_test_interactions": 339,
     "k_values": [
       5,
       10,
       20
     ],
     "sampled_users": 50,
-    "is_synthetic": true,
-    "note": "SYNTHETIC VALUES — these numbers are illustrative placeholders, NOT real measurements. Run `python evaluate.py --sample 100 --mlflow` to generate actual evaluation metrics. Full evaluation on 962K users requires distributed compute (Spark/Dask/GPU). The evaluation framework (Precision@K, Recall@K, NDCG@K, MAP@K) is production-ready."
+    "is_synthetic": false,
+    "note": "Real measurements on a random sample of users. Leave-one-out split holds out the top half (min 2) of each user's highest-playcount tracks; users with <3 interactions are train-only. Full evaluation on all 962K users requires distributed compute (Spark/Dask/GPU)."
   }
 }

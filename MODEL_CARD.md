@@ -64,11 +64,11 @@ The "Diversity" slider in the UI controls `w` (1.0 = pure content, 0.0 = pure co
 
 | Model | K=5 | K=10 | K=20 |
 |---|---|---|---|
-| **Content-Based** | P=0.0012, R=0.0008, NDCG=0.0015 | P=0.0010, R=0.0012, NDCG=0.0013 | P=0.0008, R=0.0015, NDCG=0.0011 |
-| **Collaborative** | P=0.0021, R=0.0014, NDCG=0.0025 | P=0.0018, R=0.0020, NDCG=0.0022 | P=0.0015, R=0.0025, NDCG=0.0019 |
-| **Hybrid (w=0.5)** | P=0.0025, R=0.0017, NDCG=0.0028 | P=0.0022, R=0.0023, NDCG=0.0025 | P=0.0018, R=0.0028, NDCG=0.0021 |
+| **Content-Based** | P=0.000, R=0.000, NDCG=0.000 | P=0.000, R=0.000, NDCG=0.000 | P=0.000, R=0.000, NDCG=0.000 |
+| **Collaborative** | P=0.008, R=0.020, NDCG=0.011 | P=0.006, R=0.030, NDCG=0.015 | P=0.003, R=0.030, NDCG=0.015 |
+| **Hybrid (w=0.5)** | P=0.004, R=0.010, NDCG=0.006 | P=0.006, R=0.030, NDCG=0.014 | P=0.003, R=0.030, NDCG=0.014 |
 
-*Note: Metrics computed on 50 sampled users. Full evaluation pending distributed infrastructure.*
+*Note: Real measurements on a random sample of 50 users (leave-one-out split, top-20% held out). The content-based recommender scores 0 because the sampled test tracks are all in the collaborative subset (30,459 tracks with listening history), so no content-based test seed exists in this sample. Full evaluation on all 962K users requires distributed compute (Spark/Dask/GPU). See `evaluation_results.json` for the raw output.*
 
 ## Limitations
 

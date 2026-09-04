@@ -15,7 +15,7 @@ that both sides can import.
 
 import json
 import os
-from typing import Any
+from typing import Any, Literal
 
 import mlflow
 import mlflow.sklearn
@@ -30,7 +30,7 @@ class MLflowTracker:
         experiment_name: str = "spotify-hybrid-recsys",
         tracking_uri: str | None = None,
         run_name: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize MLflow tracker.
 
@@ -55,9 +55,11 @@ class MLflowTracker:
         else:
             self.experiment_id = experiment.experiment_id
 
-        self.run = None
+        # ActiveRun | None — mlflow's ActiveRun type is untyped under
+        # ignore_missing_imports, so Any is used to avoid assignment errors.
+        self.run: Any | None = None
 
-    def start_run(self, run_name: str | None = None, tags: dict[str, str] | None = None):
+    def start_run(self, run_name: str | None = None, tags: dict[str, str] | None = None) -> Any:
         """Start a new MLflow run."""
         self.run = mlflow.start_run(
             experiment_id=self.experiment_id, run_name=run_name or self.run_name, tags=tags or {}
@@ -124,8 +126,8 @@ def log_data_cleaning_stage(
     cleaned_path: str,
     raw_rows: int,
     cleaned_rows: int,
-    dropped_columns: list,
-):
+    dropped_columns: list[str],
+) -> None:
     """Log data cleaning stage parameters and metrics."""
     tracker.log_params(
         {"stage": "data_cleaning", "raw_data_path": raw_path, "cleaned_data_path": cleaned_path}
@@ -143,13 +145,13 @@ def log_data_cleaning_stage(
 
 def log_content_features_stage(
     tracker: MLflowTracker,
-    transformer,
+    transformer: Any,
     transformed_data: csr_matrix,
-    feature_names: list,
+    feature_names: list[str],
     n_samples: int,
     n_features: int,
     params: dict[str, Any],
-):
+) -> None:
     """Log content-based feature engineering stage."""
     tracker.log_params(
         {"stage": "content_features", "n_samples": n_samples, "n_features": n_features, **params}
@@ -172,7 +174,7 @@ def log_collaborative_stage(
     n_tracks: int,
     n_users: int,
     params: dict[str, Any],
-):
+) -> None:
     """Log collaborative filtering matrix construction stage."""
     tracker.log_params(
         {"stage": "collaborative_filtering", "n_tracks": n_tracks, "n_users": n_users, **params}
@@ -187,7 +189,7 @@ def log_collaborative_stage(
     )
 
 
-def log_hybrid_stage(tracker: MLflowTracker, weight_content: float, params: dict[str, Any]):
+def log_hybrid_stage(tracker: MLflowTracker, weight_content: float, params: dict[str, Any]) -> None:
     """Log hybrid model configuration."""
     tracker.log_params(
         {
@@ -199,7 +201,9 @@ def log_hybrid_stage(tracker: MLflowTracker, weight_content: float, params: dict
     )
 
 
-def log_evaluation_metrics(tracker: MLflowTracker, results: dict[str, Any], prefix: str = ""):
+def log_evaluation_metrics(
+    tracker: MLflowTracker, results: dict[str, Any], prefix: str = ""
+) -> None:
     """Log evaluation metrics from evaluate.py results.
 
     Metric names are sanitized for MLflow compatibility: '@' is replaced
@@ -225,16 +229,18 @@ class MlflowRun:
         tracker: MLflowTracker,
         run_name: str | None = None,
         tags: dict[str, str] | None = None,
-    ):
+    ) -> None:
         self.tracker = tracker
         self.run_name = run_name
         self.tags = tags
 
-    def __enter__(self):
+    def __enter__(self) -> MLflowTracker:
         self.tracker.start_run(run_name=self.run_name, tags=self.tags)
         return self.tracker
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+    ) -> Literal[False]:
         status = "FAILED" if exc_type else "FINISHED"
         self.tracker.end_run(status=status)
         return False
@@ -243,10 +249,15 @@ class MlflowRun:
 class NullContext:
     """No-op context manager for when MLflow is disabled."""
 
-    def __enter__(self):
+    def __init__(self) -> None:
+        pass
+
+    def __enter__(self) -> None:
         return None
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+    ) -> Literal[False]:
         return False
 
 

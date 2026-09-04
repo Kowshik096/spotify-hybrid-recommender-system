@@ -90,6 +90,15 @@ fall back to **content-based** filtering.
 dvc repro   # runs: data_cleaning → transform_data → interaction_data → transformed_filtered_data
 ```
 
+The DVC remote is configured out-of-the-box as a local directory inside the
+project (`.dvc/remote`, gitignored), so `dvc pull` / `dvc push` work without
+any setup. To use a cloud bucket instead, override it:
+
+```bash
+dvc remote modify local-remote url s3://my-bucket/dvc
+# or: export DVC_REMOTE=s3://...  (used by the CI dvc-pipeline job)
+```
+
 Generated artifacts (in `data/` unless noted):
 
 | Artifact | Used for |

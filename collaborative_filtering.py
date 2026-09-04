@@ -116,9 +116,19 @@ def collaborative_recommendation(
     ]
     if song_row.empty:
         raise ValueError(f"Song '{song_name}' by '{artist_name}' not found in database")
+    if len(song_row) > 1:
+        raise ValueError(
+            f"Multiple songs match '{song_name}' by '{artist_name}' "
+            f"({len(song_row)} rows). The catalog must be deduplicated on "
+            f"'track_id' before recommending."
+        )
 
     # track_id of input song
     input_track_id = song_row["track_id"].values.item()
+    # Cast to match track_ids dtype so a string track_id read from CSV does
+    # not silently fail to match an integer track_ids array (H2).
+    if track_ids.dtype.kind in ("i", "u", "f"):
+        input_track_id = track_ids.dtype.type(input_track_id)
 
     # index value of track_id
     track_indices = np.where(track_ids == input_track_id)[0]
@@ -132,17 +142,22 @@ def collaborative_recommendation(
     # get similarity scores
     similarity_scores = cosine_similarity(input_array, interaction_matrix)
 
-    # index values of recommendations
-    recommendation_indices = np.argsort(similarity_scores.ravel())[-k - 1 :][::-1]
-
-    # get top k recommendations
-    recommendation_track_ids = track_ids[recommendation_indices]
+    # Rank every track by descending similarity. The seed track scores 1.0
+    # against itself, so it must be excluded and exactly k returned.
+    # (The previous ``[-k - 1:]`` slice returned k+1 entries including the
+    # seed — an off-by-one visible as k+1 rows in the UI.)
+    ranked_indices = np.argsort(similarity_scores.ravel())[::-1]
+    ranked_track_ids = track_ids[ranked_indices]
+    keep = ranked_track_ids != input_track_id
+    recommendation_track_ids = ranked_track_ids[keep][:k]
 
     # get top scores
-    top_scores = np.sort(similarity_scores.ravel())[-k - 1 :][::-1]
+    top_scores = np.sort(similarity_scores.ravel())[::-1][keep][:k]
 
-    # get the songs from data and print
-    scores_df = pd.DataFrame({"track_id": recommendation_track_ids.tolist(), "score": top_scores})
+    # get the songs from data
+    scores_df = pd.DataFrame(
+        {"track_id": recommendation_track_ids.tolist(), "score": top_scores.tolist()}
+    )
 
     top_k_songs = (
         songs_data.loc[songs_data["track_id"].isin(recommendation_track_ids)]
