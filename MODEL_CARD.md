@@ -56,7 +56,7 @@ The "Diversity" slider in the UI controls `w` (1.0 = pure content, 0.0 = pure co
 - Collaborative: Dask categorize → integer codes → sparse CSR matrix
 
 ### Train/Test Split
-- Leave-one-out per user (20% held out)
+- Leave-one-out per user: top half (minimum 2) of each user's highest-playcount tracks held out; users with <3 interactions are train-only
 - Sampled evaluation on 50-100 users for demo
 - Full evaluation requires distributed compute
 
@@ -64,11 +64,11 @@ The "Diversity" slider in the UI controls `w` (1.0 = pure content, 0.0 = pure co
 
 | Model | K=5 | K=10 | K=20 |
 |---|---|---|---|
-| **Content-Based** | P=0.000, R=0.000, NDCG=0.000 | P=0.000, R=0.000, NDCG=0.000 | P=0.000, R=0.000, NDCG=0.000 |
-| **Collaborative** | P=0.008, R=0.020, NDCG=0.011 | P=0.006, R=0.030, NDCG=0.015 | P=0.003, R=0.030, NDCG=0.015 |
-| **Hybrid (w=0.5)** | P=0.004, R=0.010, NDCG=0.006 | P=0.006, R=0.030, NDCG=0.014 | P=0.003, R=0.030, NDCG=0.014 |
+| **Content-Based** | P=0.016, R=0.011, NDCG=0.023 | P=0.010, R=0.012, NDCG=0.020 | P=0.007, R=0.032, NDCG=0.024 |
+| **Collaborative** | P=0.104, R=0.106, NDCG=0.144 | P=0.066, R=0.126, NDCG=0.133 | P=0.042, R=0.141, NDCG=0.133 |
+| **Hybrid (w=0.5)** | P=0.104, R=0.104, NDCG=0.146 | P=0.068, R=0.127, NDCG=0.135 | P=0.043, R=0.146, NDCG=0.136 |
 
-*Note: Real measurements on a random sample of 50 users (leave-one-out split, top-20% held out). The content-based recommender scores 0 because the sampled test tracks are all in the collaborative subset (30,459 tracks with listening history), so no content-based test seed exists in this sample. Full evaluation on all 962K users requires distributed compute (Spark/Dask/GPU). See `evaluation_results.json` for the raw output.*
+*Note: Real measurements on a random sample of 50 users (leave-one-out split holding out the top half, minimum 2, of each user's highest-playcount tracks; users with <3 interactions are train-only). An earlier 20%-held-out split left a single test item per user, which made content metrics read 0.000 because recommenders exclude the seed track; the current split keeps at least one recoverable target per user. Full evaluation on all 962K users requires distributed compute (Spark/Dask/GPU). See `evaluation_results.json` for the raw output.*
 
 ## Limitations
 
